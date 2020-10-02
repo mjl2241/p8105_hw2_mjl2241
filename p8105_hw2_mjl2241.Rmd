@@ -1,0 +1,95 @@
+---
+title: "Homework 2"
+date: 2020-09-30
+author: "Michelle Lee"
+output: github_document
+---
+
+This is my solution to HW2.
+```{r}
+library(readxl)
+library(tidyverse)
+library(dplyr)
+```
+##read in data trash_wheel, sheet Mr. Trash Wheel
+```{r}
+trash_wheel= read_excel("~/Desktop/P8105_github/data/Trash-Wheel-Collection-Totals-8-6-19.xlsx", 
+    sheet = "Mr. Trash Wheel", na = "NA")
+trash_wheel= janitor::clean_names(trash_wheel)
+names(trash_wheel)
+```
+#round the number of sports balls to the nearest integer and converts the result to an integer variable (using as.integer)
+
+```{r}
+sb= round(trash_wheel[['sports_balls']])
+trash_wheel = mutate(trash_wheel, sports_balls = as.integer(sb))
+
+```
+The median number of sports balls 
+#read in precp. data 2017, 2018
+
+```{r}
+
+prec_2018= read_excel("~/Desktop/P8105_github/data/Trash-Wheel-Collection-Totals-8-6-19.xlsx", 
+    sheet = "2018 Precipitation", skip=1)
+drop_na(prec_2018, Month)
+prec_2018= janitor::clean_names(prec_2018)
+#names(prec_2018)
+prec_2018 = mutate(prec_2018, year = 2018)
+
+prec_2017= read_excel("~/Desktop/P8105_github/data/Trash-Wheel-Collection-Totals-8-6-19.xlsx", 
+    sheet = "2017 Precipitation", skip=1)
+drop_na(prec_2017, Month)
+prec_2017= janitor::clean_names(prec_2017)
+#names(prec_2017)
+prec_2017 = mutate(prec_2017, year = 2017)
+
+prec_17_18 = 
+  left_join(prec_2017, prec_2018, by = "month")
+prec_17_18 = mutate (prec_17_18, month = month.name[month])
+prec_17_18
+```
+In total, it rained significantly more in year 2018. In 2017, October, there was no record of precipitation. The total precipation in 2018 was 70.33 inches. 
+
+#problem 2
+```{r}
+nyc_transit_raw = read_csv("~/Desktop/P8105_github/data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv",
+            )
+nyc_transit_clean_names= janitor::clean_names(nyc_transit_raw)
+names(nyc_transit_clean_names)
+nyc_transit_clean_names
+
+nyc_transit_selected= 
+  select(nyc_transit_clean_names, line, station_name, station_latitude, station_longitude, route1:11, entry, vending, entrance_type, ada)
+#nyc_transit_selected
+
+nyc_transit_entry_logic = 
+mutate (nyc_transit_selected, entry = recode(
+  entry, 'YES' = '1', 'NO' = '2'))
+nyc_transit_entry_logic 
+dim(nyc_transit_entry_logic)
+#1868   14
+```
+
+nyc_transit_selected contains important data to analyze line, station name/location, ada compliance, routes, and entry type. The final dimension of nyc_transit_entry_logic is 1868 X 14. These data are not tidy, and can be improved by pivoting the route options. 
+
+```{r}
+stations_dist=
+distinct(nyc_transit_entry_logic, station_latitude, station_longitude,ada)
+stations_dist
+```
+There are 472 distinct stations, identified by latitude and longitude of the station location.
+
+```{r}
+dplyr::filter(stations_dist, grepl ('TRUE', ada))
+```
+There are 91 distinct stations that are ada compliant.
+```{r}
+nyc_transit_vending =
+distinct(nyc_transit_selected, station_latitude, station_longitude,vending, entry)
+nyc_transit_vending
+dplyr::filter(nyc_transit_vending, grepl ('NO', vending))
+dplyr::filter(nyc_transit_vending, grepl ('YES', entry))
+#112
+```
+There are 112 stations without vending that allow entrance, out of 472 unique stations, indicating a proportion of 23.72%.
